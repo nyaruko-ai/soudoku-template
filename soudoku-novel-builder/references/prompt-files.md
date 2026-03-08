@@ -94,7 +94,7 @@
     }
   ],
   "sceneOverrides": {
-    "scene-001": {
+    "scene-001-001-001": {
       "referenceCharacterIds": ["protagonist"],
       "focusCharacterIds": ["protagonist"],
       "continuityNotes": ["this happens before the heroine knows the secret"],
@@ -112,4 +112,8 @@
 - 生成物の保存先は `project/assets/`。`docs/` は `build-web-novel.mjs` が配信用に組み立てる
 - キャラクター画像生成後は `referenceImage` を生成結果に合わせて更新する
 - 節画像は `docs/story-data.js` を元に `build-episode-image-manifest.mjs` が組み立てる
+- `scene-id` は `scene-章(000)-話(000)-節(000)` 形式で、override キーや画像ファイル名もこれに揃える
+- 節画像 prompt では小説の章話節ラベルを画像に描かせない。`text`, `captions`, `chapter labels`, `talk labels`, `subtitles`, `UI overlays` などを負例に入れる
+- 節画像生成は通常、追加または修正した `scene-id` だけを `generate-episode-image.mjs` に渡す。既存画像がある節は自動でスキップされる
+- 既存の節画像を意図的に作り直す場合だけ `generate-episode-image.mjs ... --force` を使う
 - 画像生成モデル名はプロジェクトで実際に使える値に合わせて調整する

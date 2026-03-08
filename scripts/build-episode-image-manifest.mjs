@@ -45,9 +45,9 @@ function buildPrompt(scene, refEntries, override, refsConfig) {
 
   return [
     "Create one vertical smartphone-friendly scene illustration for a serial web novel.",
-    `Chapter: ${scene.chapterTitle}.`,
-    scene.talkTitle ? `Talk: ${scene.talkTitle}.` : "",
-    `Scene title: ${scene.title}.`,
+    "Do not render any readable text, chapter numbers, talk labels, section labels, captions, subtitles, logos, or UI overlays inside the image.",
+    `Story context: ${scene.chapterTitle}${scene.talkTitle ? ` / ${scene.talkTitle}` : ""}.`,
+    `Scene focus: ${scene.title}.`,
     `Summary: ${scene.summary}`,
     `Key beats: ${scene.beats.slice(0, 4).map((beat) => beat.rawText).join(" ")}`,
     refEntries.length > 0

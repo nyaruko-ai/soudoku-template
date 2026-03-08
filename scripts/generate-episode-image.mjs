@@ -12,7 +12,7 @@ const characterRefsPath = path.join(rootDir, "prompts", "scene-character-referen
 
 function usage() {
   process.stderr.write(
-    "Usage: node scripts/generate-episode-image.mjs <scene-id|--all> [--from=scene-001] [--limit=10]\n",
+    "Usage: node scripts/generate-episode-image.mjs <scene-id ...|--all> [--from=scene-001-001-001] [--limit=10] [--force]\n",
   );
 }
 
@@ -191,16 +191,21 @@ function extractTextResponses(responseJson) {
 
 function parseArgs(argv) {
   const parsed = {
-    target: argv[2],
+    targets: [],
     from: null,
     limit: null,
+    force: false,
   };
 
-  for (const arg of argv.slice(3)) {
+  for (const arg of argv.slice(2)) {
     if (arg.startsWith("--from=")) {
       parsed.from = arg.slice("--from=".length);
     } else if (arg.startsWith("--limit=")) {
       parsed.limit = Number(arg.slice("--limit=".length));
+    } else if (arg === "--force") {
+      parsed.force = true;
+    } else if (arg.trim()) {
+      parsed.targets.push(...arg.split(",").map((value) => value.trim()).filter(Boolean));
     }
   }
 
@@ -218,7 +223,7 @@ async function fileExists(targetPath) {
 
 async function main() {
   const args = parseArgs(process.argv);
-  if (!args.target) {
+  if (args.targets.length === 0) {
     usage();
     process.exitCode = 1;
     return;
@@ -240,8 +245,16 @@ async function main() {
   const refMap = new Map(refs.characters.map((character) => [character.id, character]));
 
   let episodes = manifest.episodes;
-  if (args.target !== "--all") {
-    episodes = episodes.filter((episode) => episode.id === args.target);
+  const requestedAll = args.targets.includes("--all");
+  if (!requestedAll) {
+    const requestedIds = new Set(args.targets);
+    episodes = episodes.filter((episode) => requestedIds.has(episode.id));
+
+    const matchedIds = new Set(episodes.map((episode) => episode.id));
+    const unknownIds = args.targets.filter((id) => !matchedIds.has(id));
+    if (unknownIds.length > 0) {
+      throw new Error(`Unknown scene id: ${unknownIds.join(", ")}`);
+    }
   } else if (args.from) {
     const fromIndex = episodes.findIndex((episode) => episode.id === args.from);
     if (fromIndex !== -1) {
@@ -254,13 +267,19 @@ async function main() {
   }
 
   if (episodes.length === 0) {
-    throw new Error(`No episode matched target ${args.target}`);
+    throw new Error(`No episode matched target ${args.targets.join(", ")}`);
   }
 
   const outputDir = path.join(rootDir, manifest.spec.outputDir);
   await mkdir(outputDir, { recursive: true });
 
   for (const episode of episodes) {
+    const finalPath = path.join(outputDir, `${episode.id}.webp`);
+    if (!args.force && (await fileExists(finalPath))) {
+      process.stdout.write(`Skipping existing ${episode.id}: ${path.relative(rootDir, finalPath)}\n`);
+      continue;
+    }
+
     process.stdout.write(`Generating ${episode.id} with ${episode.model}...\n`);
 
     const referenceEntries = episode.referenceCharacterIds
@@ -337,7 +356,6 @@ async function main() {
 
     const rawExtension = getExtensionForMimeType(generatedImage.mimeType);
     const rawPath = path.join(outputDir, `${episode.id}.raw${rawExtension}`);
-    const finalPath = path.join(outputDir, `${episode.id}.webp`);
     const metadataPath = path.join(outputDir, `${episode.id}.json`);
 
     await writeFile(rawPath, Buffer.from(generatedImage.data, "base64"));

@@ -13,7 +13,7 @@ const qualities = [82, 78, 74, 70, 66, 62, 58, 54, 50, 46, 42];
 const scales = [1, 0.92, 0.85];
 
 function isEpisodePng(fileName) {
-  return /^scene-\d{3}\.png$/.test(fileName);
+  return /^scene-\d{3}-\d{3}-\d{3}\.png$/.test(fileName);
 }
 
 async function encodeCandidate(inputPath, width, scale, quality) {
@@ -101,7 +101,7 @@ async function main() {
 
   const storyData = await readFile(storyDataPath, "utf8");
   const updatedStoryData = storyData.replace(
-    /\.\/images\/episodes\/(scene-\d{3})\.png/g,
+    /\.\/images\/episodes\/(scene-\d{3}-\d{3}-\d{3})\.png/g,
     "./images/episodes/$1.webp",
   );
   await writeFile(storyDataPath, updatedStoryData, "utf8");

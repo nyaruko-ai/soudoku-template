@@ -32,8 +32,8 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function toSceneId(index) {
-  return `scene-${String(index + 1).padStart(3, "0")}`;
+function toSceneId(chapterNumber, talkNumber, sectionNumber) {
+  return `scene-${String(chapterNumber).padStart(3, "0")}-${String(talkNumber).padStart(3, "0")}-${String(sectionNumber).padStart(3, "0")}`;
 }
 
 function normalizeParagraph(buffer) {
@@ -114,6 +114,7 @@ function parseMarkdown(markdown, fallbackTitle = "Web Novel") {
       key: `chapter-${String(chapterCount).padStart(2, "0")}`,
       label: `第${chapterCount}章`,
       title: `第${chapterCount}章`,
+      number: chapterCount,
       index: chapterCount - 1,
     };
     return currentChapter;
@@ -131,11 +132,14 @@ function parseMarkdown(markdown, fallbackTitle = "Web Novel") {
       key: `${chapter.key}-talk-${String(chapterTalkIndex).padStart(2, "0")}`,
       label: `第${chapterTalkIndex}話`,
       title: `第${chapterTalkIndex}話`,
+      number: chapterTalkIndex,
       chapterKey: chapter.key,
       chapterLabel: chapter.label,
       chapterTitle: chapter.title,
+      chapterNumber: chapter.number,
       chapterIndex: chapter.index,
       index: talkCount - 1,
+      sectionIndex: 0,
     };
     return currentTalk;
   }
@@ -178,6 +182,7 @@ function parseMarkdown(markdown, fallbackTitle = "Web Novel") {
         key: `chapter-${String(chapterCount).padStart(2, "0")}`,
         label: `第${chapterCount}章`,
         title: line.replace(/^##\s+/, "").trim(),
+        number: chapterCount,
         index: chapterCount - 1,
         talkIndex: 0,
       };
@@ -195,11 +200,14 @@ function parseMarkdown(markdown, fallbackTitle = "Web Novel") {
         key: `${chapter.key}-talk-${String(chapterTalkIndex).padStart(2, "0")}`,
         label: `第${chapterTalkIndex}話`,
         title: line.replace(/^###\s+/, "").trim(),
+        number: chapterTalkIndex,
         chapterKey: chapter.key,
         chapterLabel: chapter.label,
         chapterTitle: chapter.title,
+        chapterNumber: chapter.number,
         chapterIndex: chapter.index,
         index: talkCount - 1,
+        sectionIndex: 0,
       };
       continue;
     }
@@ -207,11 +215,13 @@ function parseMarkdown(markdown, fallbackTitle = "Web Novel") {
     if (line.startsWith("#### ")) {
       flushScene();
       const talk = ensureTalk();
+      const sectionNumber = (talk.sectionIndex ?? 0) + 1;
+      talk.sectionIndex = sectionNumber;
       sceneCount += 1;
       currentScene = {
-        id: toSceneId(sceneCount - 1),
+        id: toSceneId(talk.chapterNumber, talk.number, sectionNumber),
         title: line.replace(/^####\s+/, "").trim(),
-        sectionLabel: line.replace(/^####\s+/, "").trim().split(/[　 ]/)[0] || `第${sceneCount}節`,
+        sectionLabel: line.replace(/^####\s+/, "").trim().split(/[　 ]/)[0] || `第${sectionNumber}節`,
         chapterKey: talk.chapterKey,
         chapterLabel: talk.chapterLabel,
         chapterTitle: talk.chapterTitle,
