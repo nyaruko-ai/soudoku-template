@@ -1,6 +1,6 @@
 ---
 name: soudoku-novel-builder
-description: Use this skill when the user wants to create, continue, revise, or publish a soudoku novel project that first locks plot, major characters, character images, and background concepts, then builds the story chapter by chapter with chapter review, section image generation, and finally creates the title image and mobile-friendly web build under docs/.
+description: Use this skill to create Soudoku novels, an original Japanese "creative reading" approach to building a novel step by step.
 ---
 
 # Soudoku Novel Builder
