@@ -12,7 +12,7 @@ const characterRefsPath = path.join(rootDir, "prompts", "scene-character-referen
 
 function usage() {
   process.stderr.write(
-    "Usage: node scripts/generate-episode-image.mjs <scene-id ...|--all> [--from=scene-001-001-001] [--limit=10] [--force]\n",
+    "Usage: node scripts/generate-episode-image.mjs <scene-id ...|--all> [--from=scene-001-001-001] [--limit=10] [--force] [--parallel=2]\n",
   );
 }
 
@@ -195,6 +195,7 @@ function parseArgs(argv) {
     from: null,
     limit: null,
     force: false,
+    parallel: 2,
   };
 
   for (const arg of argv.slice(2)) {
@@ -204,6 +205,8 @@ function parseArgs(argv) {
       parsed.limit = Number(arg.slice("--limit=".length));
     } else if (arg === "--force") {
       parsed.force = true;
+    } else if (arg.startsWith("--parallel=")) {
+      parsed.parallel = Number(arg.slice("--parallel=".length));
     } else if (arg.trim()) {
       parsed.targets.push(...arg.split(",").map((value) => value.trim()).filter(Boolean));
     }
@@ -219,6 +222,132 @@ async function fileExists(targetPath) {
   } catch {
     return false;
   }
+}
+
+async function runWithConcurrency(items, limit, worker) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  async function consume() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await worker(items[currentIndex], currentIndex);
+    }
+  }
+
+  const workerCount = Math.max(1, Math.min(limit, items.length));
+  await Promise.all(Array.from({ length: workerCount }, () => consume()));
+  return results;
+}
+
+async function generateEpisode(episode, manifest, refMap, apiKey, outputDir, force) {
+  const finalPath = path.join(outputDir, `${episode.id}.webp`);
+  if (!force && (await fileExists(finalPath))) {
+    process.stdout.write(`Skipping existing ${episode.id}: ${path.relative(rootDir, finalPath)}\n`);
+    return { id: episode.id, skipped: true, output: path.relative(rootDir, finalPath) };
+  }
+
+  process.stdout.write(`Generating ${episode.id} with ${episode.model}...\n`);
+
+  const referenceEntries = episode.referenceCharacterIds
+    .map((id) => refMap.get(id))
+    .filter(Boolean)
+    .slice(0, 4);
+
+  const referenceBuffers = [];
+  for (const entry of referenceEntries) {
+    const referencePath = path.join(rootDir, entry.referenceImage);
+    if (!(await fileExists(referencePath))) {
+      process.stdout.write(`Skipping missing reference image: ${entry.referenceImage}\n`);
+      continue;
+    }
+
+    referenceBuffers.push({
+      id: entry.id,
+      path: referencePath,
+      mimeType: getMimeType(referencePath),
+      data: await readFile(referencePath),
+    });
+  }
+
+  const parts = referenceBuffers.map((buffer) => ({
+    inlineData: {
+      mimeType: buffer.mimeType,
+      data: buffer.data.toString("base64"),
+    },
+  }));
+
+  parts.push({
+    text: [
+      manifest.spec.globalPrompt,
+      episode.prompt,
+      `Global negative prompt: ${manifest.spec.globalNegativePrompt}.`,
+      `Episode negative prompt: ${episode.negativePrompt}.`,
+    ].join(" "),
+  });
+
+  const requestBody = {
+    contents: [
+      {
+        parts,
+      },
+    ],
+    generationConfig: {
+      responseModalities: ["TEXT", "IMAGE"],
+      imageConfig: {
+        aspectRatio: "9:16",
+        imageSize: "2K",
+      },
+    },
+  };
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${episode.model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini request failed for ${episode.id} (${response.status}): ${errorText}`);
+  }
+
+  const responseJson = await response.json();
+  const generatedImage = extractGeneratedImage(responseJson);
+  if (!generatedImage) {
+    throw new Error(`Gemini response did not include an image for ${episode.id}`);
+  }
+
+  const rawExtension = getExtensionForMimeType(generatedImage.mimeType);
+  const rawPath = path.join(outputDir, `${episode.id}.raw${rawExtension}`);
+  const metadataPath = path.join(outputDir, `${episode.id}.json`);
+
+  await writeFile(rawPath, Buffer.from(generatedImage.data, "base64"));
+  await centerCropToWebp(rawPath, finalPath, manifest.spec.fixedWidth, manifest.spec.fixedHeight);
+
+  const metadata = {
+    episodeId: episode.id,
+    title: episode.title,
+    chapterTitle: episode.chapterTitle,
+    model: episode.model,
+    generatedAt: new Date().toISOString(),
+    output: path.relative(rootDir, finalPath),
+    rawOutput: path.relative(rootDir, rawPath),
+    referenceImages: referenceEntries.map((entry) => entry.referenceImage),
+    referenceCharacterIds: episode.referenceCharacterIds,
+    continuityNotes: episode.continuityNotes,
+    prompt: episode.prompt,
+    responseTexts: extractTextResponses(responseJson),
+  };
+
+  await writeFile(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`, "utf8");
+  process.stdout.write(`${path.relative(rootDir, finalPath)}\n`);
+
+  return { id: episode.id, skipped: false, output: path.relative(rootDir, finalPath) };
 }
 
 async function main() {
@@ -272,113 +401,11 @@ async function main() {
 
   const outputDir = path.join(rootDir, manifest.spec.outputDir);
   await mkdir(outputDir, { recursive: true });
-
-  for (const episode of episodes) {
-    const finalPath = path.join(outputDir, `${episode.id}.webp`);
-    if (!args.force && (await fileExists(finalPath))) {
-      process.stdout.write(`Skipping existing ${episode.id}: ${path.relative(rootDir, finalPath)}\n`);
-      continue;
-    }
-
-    process.stdout.write(`Generating ${episode.id} with ${episode.model}...\n`);
-
-    const referenceEntries = episode.referenceCharacterIds
-      .map((id) => refMap.get(id))
-      .filter(Boolean)
-      .slice(0, 4);
-
-    const referenceBuffers = [];
-    for (const entry of referenceEntries) {
-      const referencePath = path.join(rootDir, entry.referenceImage);
-      if (!(await fileExists(referencePath))) {
-        process.stdout.write(`Skipping missing reference image: ${entry.referenceImage}\n`);
-        continue;
-      }
-
-      referenceBuffers.push({
-        id: entry.id,
-        path: referencePath,
-        mimeType: getMimeType(referencePath),
-        data: await readFile(referencePath),
-      });
-    }
-
-    const parts = referenceBuffers.map((buffer) => ({
-      inlineData: {
-        mimeType: buffer.mimeType,
-        data: buffer.data.toString("base64"),
-      },
-    }));
-
-    parts.push({
-      text: [
-        manifest.spec.globalPrompt,
-        episode.prompt,
-        `Global negative prompt: ${manifest.spec.globalNegativePrompt}.`,
-        `Episode negative prompt: ${episode.negativePrompt}.`,
-      ].join(" "),
-    });
-
-    const requestBody = {
-      contents: [
-        {
-          parts,
-        },
-      ],
-      generationConfig: {
-        responseModalities: ["TEXT", "IMAGE"],
-        imageConfig: {
-          aspectRatio: "9:16",
-          imageSize: "2K",
-        },
-      },
-    };
-
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${episode.model}:generateContent?key=${encodeURIComponent(env.GEMINI_API_KEY)}`;
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini request failed for ${episode.id} (${response.status}): ${errorText}`);
-    }
-
-    const responseJson = await response.json();
-    const generatedImage = extractGeneratedImage(responseJson);
-    if (!generatedImage) {
-      throw new Error(`Gemini response did not include an image for ${episode.id}`);
-    }
-
-    const rawExtension = getExtensionForMimeType(generatedImage.mimeType);
-    const rawPath = path.join(outputDir, `${episode.id}.raw${rawExtension}`);
-    const metadataPath = path.join(outputDir, `${episode.id}.json`);
-
-    await writeFile(rawPath, Buffer.from(generatedImage.data, "base64"));
-    await centerCropToWebp(rawPath, finalPath, manifest.spec.fixedWidth, manifest.spec.fixedHeight);
-
-    const metadata = {
-      episodeId: episode.id,
-      title: episode.title,
-      chapterTitle: episode.chapterTitle,
-      model: episode.model,
-      generatedAt: new Date().toISOString(),
-      output: path.relative(rootDir, finalPath),
-      rawOutput: path.relative(rootDir, rawPath),
-      referenceImages: referenceEntries.map((entry) => entry.referenceImage),
-      referenceCharacterIds: episode.referenceCharacterIds,
-      continuityNotes: episode.continuityNotes,
-      prompt: episode.prompt,
-      responseTexts: extractTextResponses(responseJson),
-    };
-
-    await writeFile(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`, "utf8");
-    process.stdout.write(`${path.relative(rootDir, finalPath)}\n`);
-  }
+  await runWithConcurrency(
+    episodes,
+    Number.isFinite(args.parallel) && args.parallel > 0 ? args.parallel : 2,
+    (episode) => generateEpisode(episode, manifest, refMap, env.GEMINI_API_KEY, outputDir, args.force),
+  );
 }
 
 main().catch((error) => {

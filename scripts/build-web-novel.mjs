@@ -364,6 +364,7 @@ async function main() {
     titleImage: (await exists(titleImagePath)) ? "./images/title/title-cover.webp" : null,
     titleImageAlt: `${title} のタイトルビジュアル`,
     generatedAt: new Date().toISOString(),
+    talkCount: new Set(parsed.scenes.map((scene) => scene.talkKey)).size,
     sceneCount: parsed.scenes.length,
     scenes: [],
   };

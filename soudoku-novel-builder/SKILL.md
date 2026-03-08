@@ -29,6 +29,7 @@ description: Use this skill when the user wants to create, continue, revise, or 
 - キャラクター、世界観、語り口、到達点、構成、現在地などが `project/` の設計とズレる場合も同じ。先に設計を直し、本文は常に承認済み設計に従わせる。
 - 新キャラクターや敵が出たら、まず `project/02_characters.md` と `prompts/character-portraits.json` を更新し、必要なら `node scripts/generate-character-portrait.mjs <id>` を使う。
 - 背景イメージは初期フェーズで `prompts/background-concepts.json` を更新し、必要なら `node scripts/generate-background-concept.mjs <id|--all>` で生成する。
+- 複数枚の画像を生成する場面では、可能な限り並列生成を使う。背景、キャラクター、節画像は `--parallel=<n>` を付けて保守的に 2 枚前後ずつ並列化できる。
 - 節画像を作る前に `node scripts/build-web-novel.mjs` と `node scripts/build-episode-image-manifest.mjs` を実行し、`prompts/episode-image-manifest.json` を更新する。
 - 節画像は全件再生成しない。既存の `project/assets/episodes/*.webp` は保持し、新規追加または修正した `節` の画像だけを生成する。
 - 節画像を再生成したいのは、対象の `節` を本文またはプロンプト上で修正した場合だけ。既存画像を上書きする必要があるときだけ `--force` を使う。
@@ -98,6 +99,7 @@ description: Use this skill when the user wants to create, continue, revise, or 
 - キャラクター画像生成: `node scripts/generate-character-portrait.mjs <character-id|--all>`
 - 節画像生成: `node scripts/generate-episode-image.mjs <scene-id ...|--all> [--force]` 。
   ここでの `scene-id` は実質的に「節」の画像 ID。通常は変更した節だけを指定し、`--all` は初回生成や欠番補完に限る。既存画像の再生成は `--force` を付けたときだけ行う。
+- 複数生成時の並列化: `node scripts/generate-background-concept.mjs --all --parallel=2`, `node scripts/generate-character-portrait.mjs --all --parallel=2`, `node scripts/generate-episode-image.mjs <scene-id ...> --parallel=2`
 
 ## Read As Needed
 

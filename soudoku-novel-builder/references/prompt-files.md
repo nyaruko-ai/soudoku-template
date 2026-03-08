@@ -116,4 +116,5 @@
 - 節画像 prompt では小説の章話節ラベルを画像に描かせない。`text`, `captions`, `chapter labels`, `talk labels`, `subtitles`, `UI overlays` などを負例に入れる
 - 節画像生成は通常、追加または修正した `scene-id` だけを `generate-episode-image.mjs` に渡す。既存画像がある節は自動でスキップされる
 - 既存の節画像を意図的に作り直す場合だけ `generate-episode-image.mjs ... --force` を使う
+- 複数画像を一度に作るときは `--parallel=<n>` を使って保守的に並列化できる。既定値は `2`
 - 画像生成モデル名はプロジェクトで実際に使える値に合わせて調整する

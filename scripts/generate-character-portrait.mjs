@@ -10,7 +10,7 @@ const promptPath = path.join(rootDir, "prompts", "character-portraits.json");
 
 function usage() {
   process.stderr.write(
-    "Usage: node scripts/generate-character-portrait.mjs <character-id|--all> [reference-image-path]\n",
+    "Usage: node scripts/generate-character-portrait.mjs <character-id|--all> [reference-image-path] [--parallel=2]\n",
   );
 }
 
@@ -288,15 +288,49 @@ async function generateCharacter(character, promptFile, apiKey, cliReferencePath
   return path.relative(rootDir, finalOutputPath);
 }
 
+function parseArgs(argv) {
+  const parsed = {
+    target: argv[2],
+    cliReferencePath: null,
+    parallel: 2,
+  };
+
+  for (const arg of argv.slice(3)) {
+    if (arg.startsWith("--parallel=")) {
+      parsed.parallel = Number(arg.slice("--parallel=".length));
+    } else if (!parsed.cliReferencePath) {
+      parsed.cliReferencePath = arg;
+    }
+  }
+
+  return parsed;
+}
+
+async function runWithConcurrency(items, limit, worker) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  async function consume() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await worker(items[currentIndex], currentIndex);
+    }
+  }
+
+  const workerCount = Math.max(1, Math.min(limit, items.length));
+  await Promise.all(Array.from({ length: workerCount }, () => consume()));
+  return results;
+}
+
 async function main() {
-  const target = process.argv[2];
-  if (!target) {
+  const args = parseArgs(process.argv);
+  if (!args.target) {
     usage();
     process.exitCode = 1;
     return;
   }
 
-  const cliReferencePath = process.argv[3] || null;
   const envSource = await readFile(envPath, "utf8");
   const env = parseEnvFile(envSource);
   const apiKey = env.GEMINI_API_KEY;
@@ -307,19 +341,19 @@ async function main() {
 
   const promptFile = JSON.parse(await readFile(promptPath, "utf8"));
   const characters =
-    target === "--all"
+    args.target === "--all"
       ? promptFile.characters
-      : promptFile.characters.filter((entry) => entry.id === target);
+      : promptFile.characters.filter((entry) => entry.id === args.target);
 
   if (characters.length === 0) {
-    throw new Error(`Unknown character id: ${target}`);
+    throw new Error(`Unknown character id: ${args.target}`);
   }
 
-  const completed = [];
-  for (const character of characters) {
-    const output = await generateCharacter(character, promptFile, apiKey, cliReferencePath);
-    completed.push(output);
-  }
+  const completed = await runWithConcurrency(
+    characters,
+    Number.isFinite(args.parallel) && args.parallel > 0 ? args.parallel : 2,
+    (character) => generateCharacter(character, promptFile, apiKey, args.cliReferencePath),
+  );
 
   process.stdout.write(`${completed.join("\n")}\n`);
 }

@@ -1,6 +1,8 @@
 .env
 node_modules/
 .DS_Store
+project/
+prompts/
 
 # Generated intermediate image artifacts
 docs/images/**/*.json

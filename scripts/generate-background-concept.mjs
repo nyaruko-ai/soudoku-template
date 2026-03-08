@@ -10,7 +10,7 @@ const promptPath = path.join(rootDir, "prompts", "background-concepts.json");
 
 function usage() {
   process.stderr.write(
-    "Usage: node scripts/generate-background-concept.mjs <background-id|--all>\n",
+    "Usage: node scripts/generate-background-concept.mjs <background-id|--all> [--parallel=2]\n",
   );
 }
 
@@ -188,9 +188,41 @@ async function generateBackground(entry, promptFile, apiKey) {
   return path.relative(rootDir, finalPath);
 }
 
+function parseArgs(argv) {
+  const parsed = {
+    target: argv[2],
+    parallel: 2,
+  };
+
+  for (const arg of argv.slice(3)) {
+    if (arg.startsWith("--parallel=")) {
+      parsed.parallel = Number(arg.slice("--parallel=".length));
+    }
+  }
+
+  return parsed;
+}
+
+async function runWithConcurrency(items, limit, worker) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  async function consume() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await worker(items[currentIndex], currentIndex);
+    }
+  }
+
+  const workerCount = Math.max(1, Math.min(limit, items.length));
+  await Promise.all(Array.from({ length: workerCount }, () => consume()));
+  return results;
+}
+
 async function main() {
-  const target = process.argv[2];
-  if (!target) {
+  const args = parseArgs(process.argv);
+  if (!args.target) {
     usage();
     process.exitCode = 1;
     return;
@@ -208,26 +240,27 @@ async function main() {
 
   const promptFile = JSON.parse(promptSource);
   const entries =
-    target === "--all"
+    args.target === "--all"
       ? promptFile.backgrounds
-      : promptFile.backgrounds.filter((entry) => entry.id === target);
+      : promptFile.backgrounds.filter((entry) => entry.id === args.target);
 
   if (entries.length === 0) {
-    throw new Error(`Unknown background id: ${target}`);
+    throw new Error(`Unknown background id: ${args.target}`);
   }
 
-  const completed = [];
-  for (const entry of entries) {
-    const output = await generateBackground(
-      {
-        ...entry,
-        model: entry.model || promptFile.spec.defaultModel,
-      },
-      promptFile,
-      env.GEMINI_API_KEY,
-    );
-    completed.push(output);
-  }
+  const completed = await runWithConcurrency(
+    entries,
+    Number.isFinite(args.parallel) && args.parallel > 0 ? args.parallel : 2,
+    (entry) =>
+      generateBackground(
+        {
+          ...entry,
+          model: entry.model || promptFile.spec.defaultModel,
+        },
+        promptFile,
+        env.GEMINI_API_KEY,
+      ),
+  );
 
   process.stdout.write(`${completed.join("\n")}\n`);
 }

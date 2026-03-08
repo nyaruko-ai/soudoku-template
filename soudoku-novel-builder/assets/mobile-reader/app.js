@@ -138,7 +138,7 @@ function titlePage(storyData) {
 
   const meta = document.createElement("p");
   meta.className = "title-page-meta";
-  meta.textContent = `${storyData.sceneCount}話収録`;
+  meta.textContent = `${storyData.talkCount ?? storyData.sceneCount}話収録`;
 
   card.append(meta);
   section.append(card);
