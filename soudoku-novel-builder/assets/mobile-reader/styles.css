@@ -673,15 +673,22 @@ body.menu-open .chapter-menu {
 .novel-footer {
   width: min(100%, 22rem);
   margin: 0 auto;
-  padding: 0 0.2rem 3rem;
+  padding: 1rem 0.2rem 3.5rem;
   font-family: var(--ui-font);
   font-size: 0.92rem;
   line-height: 1.8;
   color: rgba(255, 248, 241, 0.88);
+  text-align: center;
 }
 
-.novel-footer code {
-  font-family: "SFMono-Regular", "Menlo", "Monaco", monospace;
+.novel-finish {
+  margin: 0;
+  font-family: var(--novel-font);
+  font-size: clamp(1.6rem, 6vw, 2.2rem);
+  line-height: 1.4;
+  letter-spacing: 0.18em;
+  color: rgba(255, 250, 244, 0.96);
+  text-shadow: 0 8px 22px rgba(0, 0, 0, 0.24);
 }
 
 @media (min-width: 430px) {

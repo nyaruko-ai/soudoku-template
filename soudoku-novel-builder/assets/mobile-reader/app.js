@@ -344,8 +344,7 @@ function render(storyData) {
 
   const footer = document.createElement("footer");
   footer.className = "novel-footer";
-  footer.innerHTML =
-    "<p>原稿を更新したら <code>node scripts/build-web-novel.mjs</code> を再実行すると、表示データとビジュアルカードを再生成できます。</p>";
+  footer.innerHTML = '<p class="novel-finish">完</p>';
   fragment.append(footer);
 
   novel.replaceChildren(fragment);
