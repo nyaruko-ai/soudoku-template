@@ -1,0 +1,9 @@
+.env
+node_modules/
+.DS_Store
+
+# Generated intermediate image artifacts
+docs/images/**/*.json
+docs/images/**/*.raw.*
+project/assets/**/*.json
+project/assets/**/*.raw.*

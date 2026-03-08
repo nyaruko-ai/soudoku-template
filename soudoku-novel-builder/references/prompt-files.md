@@ -1,0 +1,115 @@
+# Prompt Files
+
+## `prompts/title-image.json`
+
+```json
+{
+  "spec": {
+    "globalPrompt": "overall art direction",
+    "globalNegativePrompt": "things to avoid",
+    "fixedWidth": 1440,
+    "fixedHeight": 2304
+  },
+  "titleImage": {
+    "id": "title-cover",
+    "model": "gemini-3.1-flash-image-preview",
+    "outputDir": "project/assets/title",
+    "prompt": "cover-specific direction",
+    "negativePrompt": "cover-specific avoidance"
+  }
+}
+```
+
+## `prompts/character-portraits.json`
+
+```json
+{
+  "spec": {
+    "globalPrompt": "overall portrait direction",
+    "globalNegativePrompt": "things to avoid",
+    "fixedWidth": 1080,
+    "fixedHeight": 1920,
+    "outputDir": "project/assets/characters",
+    "defaultModel": "gemini-3.1-flash-image-preview"
+  },
+  "characters": [
+    {
+      "id": "protagonist",
+      "name": "主人公名",
+      "model": "gemini-3.1-flash-image-preview",
+      "prompt": "full body portrait instructions",
+      "negativePrompt": "character-specific avoidance",
+      "referenceImage": "project/assets/characters/protagonist-ref.png",
+      "sourceRefs": [
+        "project/02_characters.md"
+      ]
+    }
+  ]
+}
+```
+
+## `prompts/background-concepts.json`
+
+```json
+{
+  "spec": {
+    "globalPrompt": "overall background concept direction",
+    "globalNegativePrompt": "things to avoid",
+    "fixedWidth": 1440,
+    "fixedHeight": 2304,
+    "outputDir": "project/assets/world",
+    "defaultModel": "gemini-3.1-flash-image-preview"
+  },
+  "backgrounds": [
+    {
+      "id": "holiday-morning-street",
+      "name": "休日の朝の街並み",
+      "model": "gemini-3.1-flash-image-preview",
+      "prompt": "quiet affluent neighborhood at morning with hidden unease",
+      "negativePrompt": "avoid crowds and overt violence"
+    }
+  ]
+}
+```
+
+## `prompts/scene-character-references.json`
+
+```json
+{
+  "spec": {
+    "globalPrompt": "overall scene art direction",
+    "globalNegativePrompt": "things to avoid",
+    "fixedWidth": 1080,
+    "fixedHeight": 1920,
+    "outputDir": "project/assets/episodes",
+    "defaultModel": "gemini-3.1-flash-image-preview"
+  },
+  "characters": [
+    {
+      "id": "protagonist",
+      "name": "主人公名",
+      "aliases": ["別名", "呼び名"],
+      "referenceImage": "project/assets/characters/protagonist.png",
+      "visualRules": "keep the scar on the left cheek and the navy coat"
+    }
+  ],
+  "sceneOverrides": {
+    "scene-001": {
+      "referenceCharacterIds": ["protagonist"],
+      "focusCharacterIds": ["protagonist"],
+      "continuityNotes": ["this happens before the heroine knows the secret"],
+      "promptSuffix": "show the station platform soaked by summer rain",
+      "negativePrompt": "do not add extra crowd characters",
+      "model": "gemini-3.1-flash-image-preview"
+    }
+  }
+}
+```
+
+## Usage Notes
+
+- 初期フェーズでは `title-image.json`, `character-portraits.json`, `background-concepts.json` を先に整える
+- 生成物の保存先は `project/assets/`。`docs/` は `build-web-novel.mjs` が配信用に組み立てる
+- キャラクター画像生成後は `referenceImage` を生成結果に合わせて更新する
+- 節画像は `docs/story-data.js` を元に `build-episode-image-manifest.mjs` が組み立てる
+- 画像生成モデル名はプロジェクトで実際に使える値に合わせて調整する

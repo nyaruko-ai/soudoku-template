@@ -1,0 +1,16 @@
+{
+  "name": "novel-template",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "init:project": "node scripts/init-novel-project.mjs",
+    "check:project": "node scripts/check-project-state.mjs",
+    "build:web": "node scripts/build-web-novel.mjs",
+    "build:episode-manifest": "node scripts/build-episode-image-manifest.mjs",
+    "build:episode-webp": "node scripts/convert-episode-images-to-webp.mjs",
+    "generate:background": "node scripts/generate-background-concept.mjs --all"
+  },
+  "dependencies": {
+    "sharp": "^0.34.0"
+  }
+}

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>__TITLE__</title>
+    <meta
+      name="description"
+      content="__DESCRIPTION__"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-mood="sunrise">
+    <div class="stage">
+      <div class="device-shell">
+        <button
+          class="menu-toggle"
+          id="menuToggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="chapterMenu"
+          aria-label="章メニューを開く"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <div class="menu-backdrop" id="menuBackdrop" hidden></div>
+        <aside class="chapter-menu" id="chapterMenu" aria-hidden="true">
+          <div class="chapter-menu-header">
+            <p class="chapter-menu-eyebrow">Contents</p>
+            <h2 class="chapter-menu-title">目次</h2>
+          </div>
+          <nav class="chapter-menu-list" id="chapterMenuList" aria-label="目次"></nav>
+        </aside>
+        <div class="progress-track" aria-hidden="true">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="device-scroll" id="deviceScroll">
+          <main class="novel" id="novel" aria-live="polite">
+            <div class="loading-state">物語を読み込んでいます...</div>
+          </main>
+        </div>
+      </div>
+    </div>
+    <script src="./story-data.js"></script>
+    <script src="./app.js"></script>
+  </body>
+  </html>

@@ -1,0 +1,7 @@
+interface:
+  display_name: "創読 Novel Builder"
+  short_description: "対話しながら小説とWeb体験を育てる"
+  default_prompt: "Use $soudoku-novel-builder to create or continue a step-by-step interactive novel project with image generation and a mobile web build."
+
+policy:
+  allow_implicit_invocation: true
