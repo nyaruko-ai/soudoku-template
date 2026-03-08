@@ -1,6 +1,6 @@
 ---
 name: soudoku-novel-builder
-description: Use this skill when the user wants to create, continue, revise, or publish a soudoku novel project that first locks plot, major characters, character images, and background concepts, then builds the story chapter by chapter with chapter review, section image generation, and a mobile-friendly web build under docs/.
+description: Use this skill when the user wants to create, continue, revise, or publish a soudoku novel project that first locks plot, major characters, character images, and background concepts, then builds the story chapter by chapter with chapter review, section image generation, and finally creates the title image and mobile-friendly web build under docs/.
 ---
 
 # Soudoku Novel Builder
@@ -21,7 +21,7 @@ description: Use this skill when the user wants to create, continue, revise, or 
 - 聖典は `project/01_plot.md`, `project/02_characters.md`, `project/03_worldbuilding.md`, `project/04_chapter_outline.md`, `project/05_style_guide.md` に置く。本文を書く前にここを同期する。
 - 構成単位は必ず `章 > 話 > 節`。`節` は背景や状況が切り替わる画面ショット単位で、画像生成の最小単位でもある。
 - 節画像の `scene-id` は `scene-章(000)-話(000)-節(000)` 形式にする。例: `scene-001-002-003` は「第1章第2話第3節」。
-- 初回承認前に作るのは `project/01_plot.md`, `project/02_characters.md`, `project/03_worldbuilding.md`, `project/04_chapter_outline.md`, `prompts/character-portraits.json`, `prompts/background-concepts.json` とその生成物。
+- 初回承認前に作るのは `project/01_plot.md`, `project/02_characters.md`, `project/03_worldbuilding.md`, `project/04_chapter_outline.md`, `prompts/character-portraits.json`, `prompts/background-concepts.json` とその生成物。タイトル画像はこの段階では作らない。
 - 制作中の画像や中間生成物は常に `project/assets/` に保存する。`docs/` は配信用にビルドした結果だけを置く。
 - 本文、画像、ビルドの作業中に設計との差分を見つけたら、必ずユーザへ先に指摘する。勝手に本文や画像へ反映しない。
 - 設計変更が必要な場合は、必ず先に `project/` 側の該当ファイルを修正し、必要ならユーザ確認を取る。その後で本文・画像・ビルドに進む。
@@ -56,7 +56,6 @@ description: Use this skill when the user wants to create, continue, revise, or 
 
 ### 2. 初期ビジュアル設計
 
-- タイトル画像が必要なら `prompts/title-image.json` を更新して `node scripts/generate-title-image.mjs` を使う。
 - キャラクター画像は `references/prompt-files.md` の `character-portraits.json` 形式に従って更新する。
 - 背景イメージは `prompts/background-concepts.json` を更新し、物語の基調となる主要背景を先に作る。
 
@@ -82,6 +81,13 @@ description: Use this skill when the user wants to create, continue, revise, or 
 - `node scripts/build-episode-image-manifest.mjs`
 - 追加または修正した `節` の `scene-id` だけを `node scripts/generate-episode-image.mjs <scene-id ...>` で生成する。既存画像を作り直さない。
 - 節画像生成後に再度 `node scripts/build-web-novel.mjs`
+
+### 5.5. 最終タイトル画像
+
+- タイトル画像は本文、主要節画像、キャラクター像、全体トーンが固まった最後に作る。
+- `prompts/title-image.json` は、その時点で確定した `project/02_characters.md`, `project/05_style_guide.md`, `project/assets/characters/*.png`, `project/assets/world/*.webp` に合わせて更新する。
+- タイトル画像は現在のキャラクター画像と印象を揃える。必要なら `referenceImages` にサトーとニャル子の最新画像を入れて `node scripts/generate-title-image.mjs` を使う。
+- タイトル画像でも `第1章`, `第2話`, `第3節` のような文字情報やロゴや UI 表示を画像に埋め込まない。
 
 ### 6. 整合性確認
 

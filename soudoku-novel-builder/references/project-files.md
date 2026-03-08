@@ -15,7 +15,7 @@
 
 ## Asset and Build Files
 
-- `prompts/title-image.json`: タイトル画像生成定義
+- `prompts/title-image.json`: 最終工程で使うタイトル画像生成定義
 - `prompts/background-concepts.json`: 初期フェーズで使う背景イメージ生成定義
 - `prompts/character-portraits.json`: キャラクター画像生成定義
 - `prompts/scene-character-references.json`: 節画像用の参照キャラクター定義と上書き
@@ -32,7 +32,8 @@
 5. 初回承認を取る
 6. 承認後に本文を `project/manuscript/` に反映
 7. 章ができるごとに `build-episode-image-manifest.mjs` を更新し、新規追加または修正した `節` の画像だけを `project/assets/episodes/` に生成する
-8. その時点の `project/assets/` の画像と本文から `docs/` をビルドして確認
+8. 全体が固まった最後に `prompts/title-image.json` を更新し、現在のキャラクター画像に寄せてタイトル画像を生成する
+9. その時点の `project/assets/` の画像と本文から `docs/` をビルドして確認
 
 ## Change Guardrails
 

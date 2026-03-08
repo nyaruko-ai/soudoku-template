@@ -51,6 +51,21 @@ function getExtensionForMimeType(mimeType) {
   }
 }
 
+function getMimeType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  switch (ext) {
+    case ".png":
+      return "image/png";
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".webp":
+      return "image/webp";
+    default:
+      throw new Error(`Unsupported image type: ${ext}`);
+  }
+}
+
 async function centerCropToWebp(sourcePath, targetPath, targetWidth, targetHeight) {
   await sharp(sourcePath)
     .resize({
@@ -120,10 +135,24 @@ async function main() {
     `Negative prompt: ${spec.globalNegativePrompt}, ${titleImage.negativePrompt}`,
   ].join(" ");
 
+  const referenceImagePaths = (titleImage.referenceImages || []).map((entry) =>
+    path.join(rootDir, entry),
+  );
+  const referenceParts = [];
+  for (const referenceImagePath of referenceImagePaths) {
+    const buffer = await readFile(referenceImagePath);
+    referenceParts.push({
+      inlineData: {
+        mimeType: getMimeType(referenceImagePath),
+        data: buffer.toString("base64"),
+      },
+    });
+  }
+
   const requestBody = {
     contents: [
       {
-        parts: [{ text: prompt }],
+        parts: [...referenceParts, { text: prompt }],
       },
     ],
     generationConfig: {
@@ -173,6 +202,7 @@ async function main() {
     generatedAt: new Date().toISOString(),
     output: path.relative(rootDir, finalPath),
     rawOutput: path.relative(rootDir, rawPath),
+    referenceImages: titleImage.referenceImages || [],
     prompt,
     responseTexts: extractTextResponses(responseJson),
   };

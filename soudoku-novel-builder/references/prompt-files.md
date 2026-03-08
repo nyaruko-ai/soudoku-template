@@ -14,6 +14,9 @@
     "id": "title-cover",
     "model": "gemini-3.1-flash-image-preview",
     "outputDir": "project/assets/title",
+    "referenceImages": [
+      "project/assets/characters/protagonist.png"
+    ],
     "prompt": "cover-specific direction",
     "negativePrompt": "cover-specific avoidance"
   }
@@ -108,9 +111,10 @@
 
 ## Usage Notes
 
-- 初期フェーズでは `title-image.json`, `character-portraits.json`, `background-concepts.json` を先に整える
+- 初期フェーズでは `character-portraits.json` と `background-concepts.json` を先に整える
 - 生成物の保存先は `project/assets/`。`docs/` は `build-web-novel.mjs` が配信用に組み立てる
 - キャラクター画像生成後は `referenceImage` を生成結果に合わせて更新する
+- タイトル画像は最終工程で生成する。`referenceImages` に最新のキャラクター画像を入れ、最終的な人物像と印象を揃える
 - 節画像は `docs/story-data.js` を元に `build-episode-image-manifest.mjs` が組み立てる
 - `scene-id` は `scene-章(000)-話(000)-節(000)` 形式で、override キーや画像ファイル名もこれに揃える
 - 節画像 prompt では小説の章話節ラベルを画像に描かせない。`text`, `captions`, `chapter labels`, `talk labels`, `subtitles`, `UI overlays` などを負例に入れる

@@ -68,6 +68,7 @@ ${options.logline || "ここに作品の核となる一文要約を書く。"}
 - まず確認してもらうもの:
 - 主要キャラクター画像:
 - 背景イメージ:
+- タイトル画像は最後に作る:
 - 本文開始の条件:
 
 ## Current Focus
@@ -196,7 +197,7 @@ function buildStyleGuideTemplate() {
 - 次を読みたくなるフック:
 
 ## Image Direction
-- タイトル画像:
+- タイトル画像: 全話と節画像が固まった最後に作る
 - キャラクター画像:
 - 節画像:
 
@@ -250,7 +251,8 @@ function buildTitlePromptTemplate(options) {
       id: "title-cover",
       model: "gemini-3.1-flash-image-preview",
       outputDir: "project/assets/title",
-      prompt: `${options.title} の世界観と読後感が一目で伝わるタイトルビジュアルを生成する。`,
+      referenceImages: [],
+      prompt: `${options.title} の世界観と読後感が一目で伝わるタイトルビジュアルを生成する。これは最終工程で使う。キャラクター画像と世界観が固まった後で更新する。`,
       negativePrompt: "avoid generic fantasy poster layout",
     },
   };
