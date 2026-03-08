@@ -5,14 +5,14 @@ window.STORY_DATA = {
   "genre": "現代スパイ日常コメディ",
   "slug": "sato-holiday-assassins",
   "status": "reviewing_chapter_03",
-  "updatedAt": "2026-03-08T08:52:03.648Z",
+  "updatedAt": "2026-03-08T08:57:27.320Z",
   "titleDisplayLines": [
     "サトーの優雅な休日、",
     "ただし猫耳メイド護衛付き"
   ],
   "titleImage": "./images/title/title-cover.webp",
   "titleImageAlt": "サトーの優雅な休日、ただし猫耳メイド護衛付き のタイトルビジュアル",
-  "generatedAt": "2026-03-08T08:52:03.649Z",
+  "generatedAt": "2026-03-08T08:57:27.321Z",
   "talkCount": 6,
   "sceneCount": 12,
   "scenes": [
