@@ -151,8 +151,6 @@ function chapterMenuItem(scene, index) {
   button.type = "button";
   button.dataset.talkKey = scene.talkKey;
   button.innerHTML = `
-    <span class="chapter-link-index">${scene.chapterLabel}</span>
-    <span class="chapter-link-title">${stripLeadingLabel(scene.chapterTitle, scene.chapterLabel)}</span>
     <span class="chapter-link-talk-index">${scene.talkLabel}</span>
     <span class="chapter-link-talk-title">${stripLeadingLabel(scene.talkTitle, scene.talkLabel)}</span>
   `;
@@ -170,6 +168,26 @@ function chapterMenuItem(scene, index) {
     button.classList.add("is-current");
   }
   return button;
+}
+
+function chapterMenuGroup(chapterScene, talkScenes, startIndex) {
+  const section = document.createElement("section");
+  section.className = "chapter-menu-group";
+
+  const header = document.createElement("div");
+  header.className = "chapter-menu-group-header";
+  header.innerHTML = `
+    <p class="chapter-menu-group-index">${chapterScene.chapterLabel}</p>
+    <h3 class="chapter-menu-group-title">${stripLeadingLabel(chapterScene.chapterTitle, chapterScene.chapterLabel)}</h3>
+  `;
+
+  const list = document.createElement("div");
+  list.className = "chapter-menu-group-list";
+  const buttons = talkScenes.map((scene, index) => chapterMenuItem(scene, startIndex + index));
+  list.replaceChildren(...buttons);
+
+  section.append(header, list);
+  return { section, buttons };
 }
 
 function setMenuOpen(isOpen) {
@@ -229,11 +247,19 @@ function sceneElement(scene, sceneIndex) {
   const meta = document.createElement("div");
   meta.className = "scene-meta";
 
+  const chapterLabel = document.createElement("p");
+  chapterLabel.className = "scene-chapter";
+  chapterLabel.textContent = scene.chapterTitle;
+
+  const talkLabel = document.createElement("p");
+  talkLabel.className = "scene-talk-index";
+  talkLabel.textContent = scene.talkLabel;
+
   const title = document.createElement("h2");
   title.className = "scene-title";
-  title.textContent = scene.title;
+  title.textContent = stripLeadingLabel(scene.talkTitle, scene.talkLabel);
 
-  meta.append(title);
+  meta.append(chapterLabel, talkLabel, title);
   visual.append(image, veil, grain, meta);
 
   const copy = document.createElement("div");
@@ -344,7 +370,10 @@ function render(storyData) {
 
   const footer = document.createElement("footer");
   footer.className = "novel-footer";
-  footer.innerHTML = '<p class="novel-finish">完</p>';
+  footer.innerHTML = `
+    <p class="novel-finish-title">${storyData.title}</p>
+    <p class="novel-finish">完</p>
+  `;
   fragment.append(footer);
 
   novel.replaceChildren(fragment);
@@ -353,13 +382,35 @@ function render(storyData) {
     talkKey: element.dataset.talkKey,
     element,
   }));
-  talkLinkElements = talkTargets.map((target, index) =>
-    chapterMenuItem(
-      storyData.scenes.find((scene) => scene.talkKey === target.talkKey),
-      index,
-    ),
+  const menuTalkScenes = storyData.scenes.filter(
+    (scene, index, scenes) => index === scenes.findIndex((candidate) => candidate.talkKey === scene.talkKey),
   );
-  chapterMenuList.replaceChildren(...talkLinkElements);
+  const menuGroups = [];
+  talkLinkElements = [];
+
+  menuTalkScenes.forEach((scene) => {
+    const group = menuGroups[menuGroups.length - 1];
+    if (!group || group.chapterKey !== scene.chapterKey) {
+      menuGroups.push({
+        chapterKey: scene.chapterKey,
+        chapterScene: scene,
+        talkScenes: [scene],
+      });
+      return;
+    }
+    group.talkScenes.push(scene);
+  });
+
+  const groupElements = menuGroups.map((group, index) => {
+    const startIndex = menuGroups
+      .slice(0, index)
+      .reduce((count, item) => count + item.talkScenes.length, 0);
+    const { section, buttons } = chapterMenuGroup(group.chapterScene, group.talkScenes, startIndex);
+    talkLinkElements.push(...buttons);
+    return section;
+  });
+
+  chapterMenuList.replaceChildren(...groupElements);
   syncReaderHeight();
   currentTalkKey = null;
   setActiveScene(0);
